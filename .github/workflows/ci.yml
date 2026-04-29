@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  manifest:
+    name: Manifest sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate manifest.json is valid JSON, MV3, zero permissions
+        run: |
+          node -e "
+            const m = require('./manifest.json');
+            if (m.manifest_version !== 3) { console.error('manifest_version must be 3'); process.exit(1); }
+            if (!m.name || !m.version || !m.description) { console.error('name/version/description required'); process.exit(1); }
+            if ((m.permissions || []).length > 0) {
+              console.error('Ghostsnip must declare zero permissions. Found: ' + JSON.stringify(m.permissions));
+              process.exit(1);
+            }
+            if (m.host_permissions && m.host_permissions.length > 0) {
+              console.error('Ghostsnip must not declare host_permissions. Found: ' + JSON.stringify(m.host_permissions));
+              process.exit(1);
+            }
+            const expectedMatches = new Set([
+              'https://chatgpt.com/*',
+              'https://chat.openai.com/*',
+              'https://claude.ai/*',
+            ]);
+            const cs = m.content_scripts || [];
+            const matchesSet = new Set();
+            for (const block of cs) {
+              for (const match of (block.matches || [])) matchesSet.add(match);
+            }
+            for (const m of matchesSet) {
+              if (!expectedMatches.has(m)) {
+                console.error('Unexpected content_script match: ' + m);
+                process.exit(1);
+              }
+            }
+            console.log('manifest.json OK (MV3, zero permissions, content scripts only on chatgpt/claude)');
+          "
+      - name: Verify version matches package.json
+        run: |
+          node -e "
+            const m = require('./manifest.json');
+            const p = require('./package.json');
+            if (m.version !== p.version) {
+              console.error('Version mismatch: manifest=' + m.version + ' package=' + p.version);
+              process.exit(1);
+            }
+            console.log('Versions match: ' + m.version);
+          "
+
+  package:
+    name: Build store package
+    runs-on: ubuntu-latest
+    needs: [manifest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build zip
+        run: bash scripts/package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ghostsnip-extension
+          path: dist/*.zip
+          if-no-files-found: warn
+          retention-days: 30

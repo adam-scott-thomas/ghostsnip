@@ -1,0 +1,16 @@
+{
+  "name": "ghostsnip",
+  "version": "0.1.0",
+  "private": true,
+  "description": "One-click save your ChatGPT or Claude conversation to a Recall-compatible JSON file.",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "package": "bash scripts/package.sh"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  },
+  "license": "Apache-2.0"
+}
