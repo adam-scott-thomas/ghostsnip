@@ -10,5 +10,6 @@
 /CHANGELOG.md      export-ignore
 /package.json      export-ignore
 /package-lock.json export-ignore
+/vitest.config.js  export-ignore
 # Apache-2.0 §4(b) requires the LICENSE be included with redistributions —
 # the Chrome Web Store package is a redistribution, so LICENSE stays in.
